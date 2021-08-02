@@ -2,6 +2,12 @@ from torch import nn
 import IPython.terminal.debugger as Debug
 
 
+"""
+    Comment: smaller model (i.e., hidden = 128) learns faster while bigger model (hidden = 256)
+    seems more robust?
+"""
+
+
 # class of deep neural network model
 class DeepQNet(nn.Module):
     # initialization

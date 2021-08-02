@@ -20,6 +20,8 @@ import IPython.terminal.debugger as Debug
              - Use double DQN
 """
 
+# implement the PER and Multi-steps
+
 
 # make the environment
 def make_env(params):
