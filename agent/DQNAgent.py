@@ -2,7 +2,10 @@ import torch
 import gym
 import numpy as np
 from torch import nn
-from model.DeepNetwork import DeepQNet
+from model.Networks import DeepQNet
+
+
+import IPython.terminal.debugger as Debug
 
 
 # customized weight initialization
@@ -38,7 +41,6 @@ class DQNAgent(object):
 
         # create behavior policy and target networks
         self.dqn_mode = agent_params['dqn_mode']
-        self.use_obs = agent_params['use_obs']
         self.gamma = agent_params['gamma']
         self.behavior_policy_net = DeepQNet(self.obs_dim, self.action_dim)
         self.target_policy_net = DeepQNet(self.obs_dim, self.action_dim)
@@ -63,11 +65,11 @@ class DQNAgent(object):
         if np.random.random() < self.eps:  # with probability eps, the agent selects a random action
             action = np.random.choice(self.action_space, 1)[0]
         else:  # with probability 1 - eps, the agent selects a greedy policy
-            obs = self._arr_to_tensor(obs['observation']).view(1, -1)
+            obs = self._arr_to_tensor(obs).view(1, -1)
             with torch.no_grad():
                 q_values = self.behavior_policy_net(obs)
                 action = q_values.max(dim=1)[1].item()
-        return action
+        return int(action)
 
     # update behavior policy
     def update_behavior_policy(self, batch_data):
@@ -108,6 +110,8 @@ class DQNAgent(object):
         self.optimizer.zero_grad()
         td_loss.backward()
         self.optimizer.step()
+
+        return td_loss.item()
 
     # update update target policy
     def update_target_policy(self):

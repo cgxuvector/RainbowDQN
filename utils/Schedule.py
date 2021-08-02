@@ -1,4 +1,5 @@
 import abc
+import math
 
 
 # define the abstract base class
@@ -20,3 +21,14 @@ class LinearSchedule(Schedule):
 
     def get_value(self, time):
         return self._start_value + self._schedule_amount * min(1.0, time * 1.0 / self._duration)
+
+
+class ExponentialSchedule(Schedule):
+    def __init__(self, start_value=1, end_value=0.01, epsilon_decay=500):
+        super(ExponentialSchedule, self).__init__()
+        self.start_value = start_value
+        self.end_value = end_value
+        self.epsilon_decay = epsilon_decay
+
+    def get_value(self, time):
+        return self.end_value + (self.start_value - self.end_value) * math.exp(-1. * time / self.epsilon_decay)

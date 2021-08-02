@@ -1,10 +1,10 @@
-from utils.Schedule import LinearSchedule
-from utils.ExperienceReplay import DQNReplayBuffer
+from utils.Schedule import LinearSchedule, ExponentialSchedule
+from utils.MemoryBuffer import DQNReplayBuffer
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import tqdm
 
-ACTION_NAME = ['left', 'down', 'right', 'up']
+import IPython.terminal.debugger as Debug
 
 
 class DQNExperiment(object):
@@ -16,8 +16,8 @@ class DQNExperiment(object):
         self.trn_params = trn_params
 
         # training parameters
-        self.use_obs = trn_params['use_obs']
-        self.schedule = LinearSchedule(1, 0.01, trn_params['total_time_steps'] / 3)
+        # self.schedule = LinearSchedule(1, 0.01, trn_params['total_time_steps'] / 3)
+        self.schedule = ExponentialSchedule()
         self.memory = DQNReplayBuffer(trn_params['memory_size'])
         self.start_train_step = trn_params['start_train_step']
         self.total_time_steps = trn_params['total_time_steps']
@@ -37,7 +37,7 @@ class DQNExperiment(object):
         self.model_name = trn_params['model_name']
 
         # create the summary writer
-        self.tb = SummaryWriter(comment=f"_step={self.env.max_step}_")
+        self.tb = SummaryWriter(comment=f"_{self.agent.agent_params['dqn_mode']}_")
 
     def reset(self):
         return self.env.reset()
@@ -54,14 +54,13 @@ class DQNExperiment(object):
         episode_t = 0
         episode_idx = 0
         rewards = []
+        loss = 0
 
         # reset the environment
         obs = self.env.reset()
 
         # start training
         pbar = tqdm.trange(self.total_time_steps)
-        start_pos = self.env.agent_pos
-        goal_pos = self.env.goal_loc
         for t in pbar:
             # get one action
             self.agent.eps = self.schedule.get_value(t)
@@ -79,15 +78,16 @@ class DQNExperiment(object):
             #       f"achieved_goal={next_obs['achieved_goal']}")
 
             # add to the buffer
-            self.memory.add(obs['observation'], action, reward, next_obs['observation'], done)
+            self.memory.add(obs, action, reward, next_obs, done)
             rewards.append(reward)
 
             # check termination
-            if done or episode_t == self.env.max_step:
+            if done:
                 # compute the return
-                G = 0
-                for r in reversed(rewards):
-                    G = r + self.agent.gamma * G
+                # G = 0
+                # for r in reversed(rewards):
+                #     G = r + self.agent.gamma * G
+                G = np.sum(rewards)
 
                 # store the return
                 self.trn_returns.append(G)
@@ -96,19 +96,15 @@ class DQNExperiment(object):
                 # print the information
                 pbar.set_description(
                     f"Ep={episode_idx} | "
-                    f"G={np.mean(self.trn_returns[-10:]) if self.trn_returns else 0:.2f} | "
-                    f"Eval={np.mean(self.eval_returns[-10:]) if self.eval_returns else 0:.2f} | "
-                    f"Init={start_pos} | "
-                    f"Goal={goal_pos}"
+                    f"G={np.mean(self.trn_returns[-10:]) if self.trn_returns else 0:.2f}"
                 )
 
                 self.tb.add_scalar("return", np.mean(self.trn_returns[-10:]), episode_idx)
+                self.tb.add_scalar("loss", loss, episode_idx)
 
                 # reset the environment
                 episode_t, rewards = 0, []
                 obs = self.reset()
-                start_pos = self.env.agent_pos
-                goal_pos = self.env.goal_loc
             else:
                 # increment
                 obs = next_obs
@@ -118,12 +114,11 @@ class DQNExperiment(object):
                 # update the behavior model
                 if not np.mod(t, self.update_policy_freq):
                     batch_data = self.memory.sample_batch(self.batch_size)
-                    self.agent.update_behavior_policy(batch_data)
+                    loss = self.agent.update_behavior_policy(batch_data)
 
                 # update the target model
                 if not np.mod(t, self.update_target_freq):
                     self.agent.update_target_policy()
 
         # save the results
-        self.save()
         self.tb.close()

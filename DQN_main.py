@@ -5,23 +5,68 @@ import random
 import numpy as np
 
 import gym
+import IPython.terminal.debugger as Debug
+
+"""
+    Comment: There is no bug in the code. The big difference is using Linear schedule versus using the
+             exponential schedule. However, such exploration strategy assume that the policy should be
+             better and better through the time line. But this assumption is not necessarily true. 
+             My question is: Is exponential schedule always better than linear one? 
+             
+    Notes about DQN:
+             - Epsilon schedule with exponential schedule
+             - Large memory buffer
+             - Large batch size
+             - Use double DQN
+"""
 
 
 # make the environment
-def make_env():
+def make_env(params):
     # create the environment
-    env = gym.make("CartPole-v0")
+    env = gym.make(params['env'])
     return env
 
+
 # env params
+env_params = {
+    'env': "CartPole-v0",
+    'act_num': None,
+    'act_dim': None,
+    'obs_dim': None,
+
+    'rnd_seed': 3124
+}
+
 
 # agent params
+agent_params = {
+    'dqn_mode': "double",
+    'gamma': 0.995,
+    'device': "cuda:0",
+    'lr': 1e-3,
+    'use_soft_update': False,
+    'polyak': 0.005
+}
+
+
+# training params
+train_params = {
+    'total_time_steps': 500_000,
+    'start_train_step': 1_000,
+    'memory_size': 100_000,
+    'update_policy_freq': 4,
+    'update_target_freq': 2_000,
+    'batch_size': 256,
+    'use_her': False,
+    'use_per': False,
+
+    'model_name': 'test_dqn',
+    'save_dir': './results'
+}
 
 
 if __name__ == '__main__':
-    # init the parameters
-    env_params, agent_params, train_params = parse_dqn_input()
-
     # set the random seed
     np.random.seed(env_params["rnd_seed"])
     random.seed(env_params["rnd_seed"])
@@ -30,6 +75,11 @@ if __name__ == '__main__':
     # create environment
     trn_env = make_env(env_params)
     test_env = make_env(env_params)
+
+    # set the environment parameters
+    env_params['act_num'] = trn_env.action_space.n
+    env_params['act_dim'] = trn_env.action_space.n,
+    env_params['obs_dim'] = trn_env.observation_space.shape[0]
 
     # create the agent
     my_agent = DQNAgent(env_params, agent_params)
