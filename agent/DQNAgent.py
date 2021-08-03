@@ -2,7 +2,7 @@ import torch
 import gym
 import numpy as np
 from torch import nn
-from model.Networks import DeepQNet
+from model.Networks import DeepQNet, DuelDeepQNet
 
 
 import IPython.terminal.debugger as Debug
@@ -42,8 +42,12 @@ class DQNAgent(object):
         # create behavior policy and target networks
         self.dqn_mode = agent_params['dqn_mode']
         self.gamma = agent_params['gamma']
-        self.behavior_policy_net = DeepQNet(self.obs_dim, self.action_dim)
-        self.target_policy_net = DeepQNet(self.obs_dim, self.action_dim)
+        if agent_params['use_dueling']:
+            self.behavior_policy_net = DuelDeepQNet(self.obs_dim, self.action_dim)
+            self.target_policy_net = DuelDeepQNet(self.obs_dim, self.action_dim)
+        else:
+            self.behavior_policy_net = DeepQNet(self.obs_dim, self.action_dim)
+            self.target_policy_net = DeepQNet(self.obs_dim, self.action_dim)
 
         # initialize target network with behavior network
         self.behavior_policy_net.apply(customized_weights_init)

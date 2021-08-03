@@ -49,7 +49,8 @@ agent_params = {
     'device': "cpu",
     'lr': 1e-3,
     'use_soft_update': False,
-    'polyak': 0.005
+    'polyak': 0.005,
+    'use_dueling': True
 }
 
 
@@ -62,7 +63,7 @@ train_params = {
     'update_target_freq': 2_000,
     'batch_size': 256,
     'use_her': False,
-    'use_per': True,
+    'use_per': False,
 
     'model_name': 'test_dqn',
     'save_dir': './results'
