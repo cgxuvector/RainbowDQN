@@ -1,5 +1,6 @@
 from agent.DQNAgent import DQNAgent
 from agent.PERDQNAgent import PERDQNAgent
+from agent.C51DQNAgent import C51DQNAgent
 from experiments.train_dqn import DQNExperiment
 import torch
 import random
@@ -50,7 +51,8 @@ agent_params = {
     'lr': 1e-3,
     'use_soft_update': False,
     'polyak': 0.005,
-    'use_dueling': True
+    'use_dueling': False,
+    'atoms_num': 51
 }
 
 
@@ -64,6 +66,7 @@ train_params = {
     'batch_size': 256,
     'use_her': False,
     'use_per': False,
+    'use_distributional': True,
 
     'model_name': 'test_dqn',
     'save_dir': './results'
@@ -88,6 +91,8 @@ if __name__ == '__main__':
     # create the agent
     if train_params['use_per']:
         my_agent = PERDQNAgent(env_params, agent_params)
+    elif train_params['use_distributional']:
+        my_agent = C51DQNAgent(env_params, agent_params)
     else:
         my_agent = DQNAgent(env_params, agent_params)
 
