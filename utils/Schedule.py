@@ -32,3 +32,13 @@ class ExponentialSchedule(Schedule):
 
     def get_value(self, time):
         return self.end_value + (self.start_value - self.end_value) * math.exp(-1. * time / self.epsilon_decay)
+
+
+class BetaSchedule(Schedule):
+    def __init__(self, beta_start=0.4, beta_frames=1000):
+        super(BetaSchedule, self).__init__()
+        self.beta_start = beta_start
+        self.beta_frames = beta_frames
+
+    def get_value(self, time):
+        return min(1.0, self.beta_start + time * (1.0 - self.beta_start) / self.beta_frames)

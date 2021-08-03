@@ -1,4 +1,5 @@
 from agent.DQNAgent import DQNAgent
+from agent.PERDQNAgent import PERDQNAgent
 from experiments.train_dqn import DQNExperiment
 import torch
 import random
@@ -20,7 +21,7 @@ import IPython.terminal.debugger as Debug
              - Use double DQN
 """
 
-# implement the PER and Multi-steps
+# implement the Multi-steps training
 
 
 # make the environment
@@ -45,7 +46,7 @@ env_params = {
 agent_params = {
     'dqn_mode': "double",
     'gamma': 0.995,
-    'device': "cuda:0",
+    'device': "cpu",
     'lr': 1e-3,
     'use_soft_update': False,
     'polyak': 0.005
@@ -61,7 +62,7 @@ train_params = {
     'update_target_freq': 2_000,
     'batch_size': 256,
     'use_her': False,
-    'use_per': False,
+    'use_per': True,
 
     'model_name': 'test_dqn',
     'save_dir': './results'
@@ -84,7 +85,10 @@ if __name__ == '__main__':
     env_params['obs_dim'] = trn_env.observation_space.shape[0]
 
     # create the agent
-    my_agent = DQNAgent(env_params, agent_params)
+    if train_params['use_per']:
+        my_agent = PERDQNAgent(env_params, agent_params)
+    else:
+        my_agent = DQNAgent(env_params, agent_params)
 
     # create experiment
     my_experiment = DQNExperiment(my_agent, trn_env, test_env, train_params)

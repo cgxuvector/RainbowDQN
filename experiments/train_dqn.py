@@ -1,5 +1,5 @@
-from utils.Schedule import LinearSchedule, ExponentialSchedule
-from utils.MemoryBuffer import DQNReplayBuffer
+from utils.Schedule import LinearSchedule, ExponentialSchedule, BetaSchedule
+from utils.MemoryBuffer import DQNReplayBuffer, NaivePrioritizedBuffer
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import tqdm
@@ -18,7 +18,11 @@ class DQNExperiment(object):
         # training parameters
         # self.schedule = LinearSchedule(1, 0.01, trn_params['total_time_steps'] / 3)
         self.schedule = ExponentialSchedule()
-        self.memory = DQNReplayBuffer(trn_params['memory_size'])
+        if trn_params['use_per']:
+            self.memory = NaivePrioritizedBuffer(capacity=trn_params['memory_size'])
+            self.beta_schedule = BetaSchedule(beta_frames=100)
+        else:
+            self.memory = DQNReplayBuffer(trn_params['memory_size'])
         self.start_train_step = trn_params['start_train_step']
         self.total_time_steps = trn_params['total_time_steps']
         self.update_policy_freq = trn_params['update_policy_freq']
@@ -113,8 +117,15 @@ class DQNExperiment(object):
             if t > self.start_train_step:
                 # update the behavior model
                 if not np.mod(t, self.update_policy_freq):
-                    batch_data = self.memory.sample_batch(self.batch_size)
-                    loss = self.agent.update_behavior_policy(batch_data)
+                    # NOTE: update the priority with the latest td error
+                    if self.trn_params['use_per']:
+                        per_beta = self.beta_schedule.get_value(t)
+                        batch_data = self.memory.sample_batch(self.batch_size, per_beta)
+                        loss, prios = self.agent.update_behavior_policy(batch_data)
+                        self.memory.update_priorities(batch_data[5], prios)
+                    else:
+                        batch_data = self.memory.sample_batch(self.batch_size)
+                        loss = self.agent.update_behavior_policy(batch_data)
 
                 # update the target model
                 if not np.mod(t, self.update_target_freq):
