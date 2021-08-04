@@ -63,7 +63,7 @@ train_params = {
     'memory_size': 80_000,
     'update_policy_freq': 4,
     'update_target_freq': 5_000,
-    'batch_size': 8,
+    'batch_size': 32,
     'use_her': False,
     'use_per': False,
     'use_distributional': True,
