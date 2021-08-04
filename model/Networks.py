@@ -100,8 +100,8 @@ class C51DeepQNet(nn.Module):
     def forward(self, x):
         x = self.fc_layer(x)
         x = x.view(-1, self.atoms_num)
+        x = F.softmax(x, dim=1)
         x = x.view(-1, self.act_num, self.atoms_num)
-        x = F.softmax(x, dim=2)
         return x
 
 

@@ -94,13 +94,14 @@ class C51DQNAgent(object):
         current_dist = self.behavior_policy_net(obs_tensor)
         actions_tensor = actions_tensor.unsqueeze(dim=1).expand(batch_size, 1, self.atoms)
         current_dist = current_dist.gather(dim=1, index=actions_tensor.long()).squeeze(dim=1)
-        current_dist = current_dist.clamp_(0.01, 0.99)
+        # current_dist = current_dist.clamp_(0.01, 0.99)
 
         # compute the projected target distribution
-        proj_dist = self._distribution_projection(next_obs_tensor, rewards_tensor, dones_tensor)
+        with torch.no_grad():
+            proj_dist = self._distribution_projection(next_obs_tensor, rewards_tensor, dones_tensor)
 
         # compute the cross entropy loss
-        loss = -1 * (proj_dist * current_dist.log()).sum(dim=1).mean()
+        loss = -1 * (proj_dist.detach() * current_dist.log()).sum(dim=1).mean()
 
         # minimize the loss
         self.optimizer.zero_grad()
@@ -148,15 +149,22 @@ class C51DQNAgent(object):
         batch_size = next_states.shape[0]
         with torch.no_grad():
             # delta z
-            delta_z = (self.val_max - self.val_min) / (self.atoms - 1)
+            delta_z = float(self.val_max - self.val_min) / (self.atoms - 1)
             support = torch.linspace(self.val_min, self.val_max, self.atoms)
-            # compute the distribution of the next state
-            next_dist = self.target_policy_net(next_states) * support
-            # get the next action
-            next_action = next_dist.sum(dim=2).max(dim=1)[1]
-            next_action = next_action.unsqueeze(1).unsqueeze(dim=1).expand(batch_size, 1, self.atoms)
-            next_dist = next_dist.gather(1, next_action).squeeze(1)
 
+            # compute the distribution of the next state
+            next_dist = self.target_policy_net(next_states)
+            next_dist = next_dist * support
+            # get the best next action
+            next_action = next_dist.sum(dim=2).max(dim=1)[1]
+            # next_action = next_action.unsqueeze(1).unsqueeze(dim=1).expand(batch_size, 1, self.atoms)
+
+            # select the best nest distribution
+            next_dist = self.target_policy_net(next_states)
+            # next_dist = next_dist.gather(1, next_action).squeeze(1)
+            next_dist = next_dist[range(batch_size), next_action]
+
+            # expand the others
             rewards = rewards.expand_as(next_dist)
             dones = dones.expand_as(next_dist)
             support = support.unsqueeze(0).expand_as(next_dist)
