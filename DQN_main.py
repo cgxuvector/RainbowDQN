@@ -46,7 +46,7 @@ env_params = {
 # agent params
 agent_params = {
     'dqn_mode': "double",
-    'gamma': 0.99,
+    'gamma': 0.9995,
     'device': "cpu",
     'lr': 1e-3,
     'use_soft_update': False,
@@ -60,10 +60,10 @@ agent_params = {
 train_params = {
     'total_time_steps': 500_000,
     'start_train_step': 1_000,
-    'memory_size': 50_000,
+    'memory_size': 80_000,
     'update_policy_freq': 4,
-    'update_target_freq': 2_000,
-    'batch_size': 256,
+    'update_target_freq': 5_000,
+    'batch_size': 8,
     'use_her': False,
     'use_per': False,
     'use_distributional': True,

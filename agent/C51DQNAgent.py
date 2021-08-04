@@ -92,8 +92,9 @@ class C51DQNAgent(object):
 
         # compute the current distribution
         current_dist = self.behavior_policy_net(obs_tensor)
-        actions_tensor = actions_tensor.unsqueeze(dim=1).expand(batch_size, 1, self.atoms)
-        current_dist = current_dist.gather(dim=1, index=actions_tensor.long()).squeeze(dim=1)
+        # actions_tensor = actions_tensor.unsqueeze(dim=1).expand(batch_size, 1, self.atoms)
+        # current_dist = current_dist.gather(dim=1, index=actions_tensor.long()).squeeze(dim=1)
+        current_dist = current_dist[range(batch_size), actions_tensor]
         # current_dist = current_dist.clamp_(0.01, 0.99)
 
         # compute the projected target distribution
