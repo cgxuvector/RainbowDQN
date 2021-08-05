@@ -41,7 +41,7 @@ class DQNExperiment(object):
         self.model_name = trn_params['model_name']
 
         # create the summary writer
-        self.tb = SummaryWriter(comment=f"_{self.agent.agent_params['dqn_mode']}_")
+        self.tb = SummaryWriter(comment=f"_{self.trn_params['run_name']}_")
 
     def reset(self):
         return self.env.reset()

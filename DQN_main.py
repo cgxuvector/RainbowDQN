@@ -1,10 +1,9 @@
-from agent.DQNAgent import DQNAgent
-from agent.PERDQNAgent import PERDQNAgent
-from agent.C51DQNAgent import C51DQNAgent
+from agent.RainbowAgent import RainbowAgent
 from experiments.train_dqn import DQNExperiment
 import torch
 import random
 import numpy as np
+import argparse
 
 import gym
 import IPython.terminal.debugger as Debug
@@ -22,7 +21,19 @@ import IPython.terminal.debugger as Debug
              - Use double DQN
 """
 
-# implement the Multi-steps training
+
+def parse_input():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dqn_mode", type=str, default="vanilla")
+    parser.add_argument("--use_dueling", action="store_true", default=False)
+    parser.add_argument("--use_per", action="store_true", default=False)
+    parser.add_argument("--use_her", action="store_true", default=False)
+    parser.add_argument("--use_distributional", action="store_true", default=False)
+
+    return parser.parse_args()
+
+
+Args = parse_input()
 
 
 # make the environment
@@ -45,14 +56,18 @@ env_params = {
 
 # agent params
 agent_params = {
-    'dqn_mode': "double",
+    'dqn_mode': Args.dqn_mode,
     'gamma': 0.9995,
     'device': "cpu",
     'lr': 1e-3,
     'use_soft_update': False,
     'polyak': 0.005,
-    'use_dueling': False,
-    'atoms_num': 51
+    'use_per': Args.use_per,
+    'use_dueling': Args.use_dueling,
+    'use_distributional': Args.use_distributional,
+    'atoms_num': 21,
+    'v_max': 200,
+    'v_min': 0
 }
 
 
@@ -62,14 +77,14 @@ train_params = {
     'start_train_step': 1_000,
     'memory_size': 80_000,
     'update_policy_freq': 4,
-    'update_target_freq': 5_000,
-    'batch_size': 32,
+    'update_target_freq': 3_000,
+    'batch_size': 64,
     'use_her': False,
-    'use_per': False,
-    'use_distributional': True,
-
+    'use_per': Args.use_per,
     'model_name': 'test_dqn',
-    'save_dir': './results'
+    'save_dir': './results',
+
+    'run_name': ""
 }
 
 
@@ -88,13 +103,21 @@ if __name__ == '__main__':
     env_params['act_dim'] = trn_env.action_space.n,
     env_params['obs_dim'] = trn_env.observation_space.shape[0]
 
-    # create the agent
-    if train_params['use_per']:
-        my_agent = PERDQNAgent(env_params, agent_params)
-    elif train_params['use_distributional']:
-        my_agent = C51DQNAgent(env_params, agent_params)
-    else:
-        my_agent = DQNAgent(env_params, agent_params)
+    # create the DQN agent
+    my_agent = RainbowAgent(env_params, agent_params)
+
+    # set the experiment running name
+    name = [agent_params['dqn_mode']]
+    if agent_params['use_per']:
+        name.append("PER")
+
+    if agent_params['use_dueling']:
+        name.append("DUELING")
+
+    if agent_params['use_distributional']:
+        name.append("C51")
+    name = "_".join(name)
+    train_params['run_name'] = name
 
     # create experiment
     my_experiment = DQNExperiment(my_agent, trn_env, test_env, train_params)
